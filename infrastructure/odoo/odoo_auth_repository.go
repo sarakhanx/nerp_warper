@@ -13,6 +13,11 @@ type OdooAuthRepository struct {
 	client *odoo.Client
 }
 
+// GetClient returns the underlying Odoo client
+func (r *OdooAuthRepository) GetClient() *odoo.Client {
+	return r.client
+}
+
 // NewOdooAuthRepository creates a new instance of OdooAuthRepository
 func NewOdooAuthRepository(adminUsername, adminPassword, database, url string) (*OdooAuthRepository, error) {
 	// Create Odoo client with admin credentials for system connection

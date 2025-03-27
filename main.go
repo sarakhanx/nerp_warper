@@ -25,11 +25,16 @@ func main() {
 		log.Fatalf("Failed to initialize Odoo repository: %v", err)
 	}
 
-	// Initialize auth service
-	authService := service.NewAuthService(authRepo)
+	// Initialize repositories
+	saleRepo := odoo.NewOdooSaleRepository(authRepo.GetClient())
 
-	// Initialize auth handler
+	// Initialize services
+	authService := service.NewAuthService(authRepo)
+	saleService := service.NewSaleService(saleRepo)
+
+	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
+	saleHandler := handler.NewSaleHandler(saleService)
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
@@ -42,7 +47,7 @@ func main() {
 	app.Use(cors.New())
 
 	// Setup routes
-	router.SetupRouter(app, authHandler)
+	router.SetupRouter(app, authHandler, saleHandler)
 
 	// Start server
 	log.Fatal(app.Listen(":3000"))
