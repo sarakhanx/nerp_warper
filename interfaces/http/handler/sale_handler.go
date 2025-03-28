@@ -30,3 +30,18 @@ func (h *SaleHandler) GetAllSaleOrders(c *fiber.Ctx) error {
 
 	return c.JSON(orders)
 }
+
+// GetDailySalesSummary handles GET request to retrieve daily sales summary
+func (h *SaleHandler) GetDailySalesSummary(c *fiber.Ctx) error {
+	page := c.QueryInt("page", 1)
+	pageSize := c.QueryInt("page_size", 500)
+
+	summary, err := h.saleService.GetDailySalesSummary(page, pageSize)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(summary)
+}
