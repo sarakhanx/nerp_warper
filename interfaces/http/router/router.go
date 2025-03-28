@@ -14,7 +14,7 @@ func SetupRouter(app *fiber.App, authHandler *handler.AuthHandler, saleHandler *
 	auth.Post("/logout", authHandler.Logout)
 	auth.Get("/user-info/:id", authHandler.GetUserInfo)
 
-	// Sale routes
-	sale := app.Group("/sale")
-	sale.Get("/orders", saleHandler.GetAllSaleOrders)
+	// Sales routes
+	sales := app.Group("/sales")
+	sales.Get("/", saleHandler.GetAllSaleOrders)
 }

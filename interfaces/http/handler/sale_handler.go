@@ -16,16 +16,17 @@ func NewSaleHandler(saleService *service.SaleService) *SaleHandler {
 	return &SaleHandler{saleService: saleService}
 }
 
-// GetAllSaleOrders handles GET request to retrieve all sale orders
+// GetAllSaleOrders handles GET request to retrieve sale orders with pagination
 func (h *SaleHandler) GetAllSaleOrders(c *fiber.Ctx) error {
-	orders, err := h.saleService.GetAllSaleOrders()
+	page := c.QueryInt("page", 1)
+	pageSize := c.QueryInt("page_size", 500)
+
+	orders, err := h.saleService.GetAllSaleOrders(page, pageSize)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
 
-	return c.JSON(fiber.Map{
-		"data": orders,
-	})
+	return c.JSON(orders)
 }
