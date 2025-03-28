@@ -281,3 +281,131 @@ func (r *OdooSaleRepository) GetDailySalesSummary(page, pageSize int) (*entity.S
 		TotalPages: totalPages,
 	}, nil
 }
+
+// GetPeriodSalesSummary retrieves sales summary for a specific period
+func (r *OdooSaleRepository) GetPeriodSalesSummary(periodType entity.PeriodType, customStartDate, customEndDate *time.Time) (*entity.PeriodSalesSummaryResponse, error) {
+	// Calculate date range based on period type
+	now := time.Now()
+	var startDate, endDate time.Time
+
+	if customStartDate != nil && customEndDate != nil {
+		startDate = *customStartDate
+		endDate = *customEndDate
+	} else {
+		endDate = now
+		switch periodType {
+		case entity.PeriodTypeDay:
+			startDate = now.AddDate(0, 0, -1)
+		case entity.PeriodTypeWeek:
+			startDate = now.AddDate(0, 0, -7)
+		case entity.PeriodTypeMonth:
+			startDate = now.AddDate(0, 0, -30)
+		case entity.PeriodTypeQuarter:
+			startDate = now.AddDate(0, 0, -90)
+		case entity.PeriodTypeMonthly:
+			startDate = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+			endDate = startDate.AddDate(0, 1, 0).Add(-time.Second)
+		case entity.PeriodTypeYearly:
+			startDate = time.Date(now.Year(), 1, 1, 0, 0, 0, 0, now.Location())
+			endDate = startDate.AddDate(1, 0, 0).Add(-time.Second)
+		default:
+			startDate = now.AddDate(0, 0, -30) // Default to last 30 days
+		}
+	}
+
+	// Create search criteria with date range
+	criteria := odoo.NewCriteria().
+		Add("state", "=", "sale").
+		Add("date_order", ">=", startDate.Format("2006-01-02")).
+		Add("date_order", "<=", endDate.Format("2006-01-02"))
+
+	// Search with date ordering
+	searchOptions := odoo.NewOptions().
+		FetchFields("id", "name", "date_order", "amount_total")
+
+	// Execute search and read in one call
+	var records []odoo.SaleOrder
+	if err := r.client.SearchRead("sale.order", criteria, searchOptions, &records); err != nil {
+		return nil, fmt.Errorf("failed to search sale orders: %v", err)
+	}
+
+	// Group orders by date
+	dateMap := make(map[string]*entity.DailySalesSummary)
+	var totalAmount float64
+	var totalOrders int
+
+	for _, order := range records {
+		orderDate := order.DateOrder.Get()
+		dateStr := orderDate.Format("2006-01-02")
+
+		if _, exists := dateMap[dateStr]; !exists {
+			dateMap[dateStr] = &entity.DailySalesSummary{
+				Date:        orderDate.Truncate(24 * time.Hour),
+				TotalAmount: 0,
+				OrderCount:  0,
+				Orders:      []entity.SaleOrderSummary{},
+			}
+		}
+
+		summary := dateMap[dateStr]
+		amount := order.AmountTotal.Get()
+		summary.TotalAmount += amount
+		summary.OrderCount++
+		totalAmount += amount
+		totalOrders++
+
+		orderSummary := entity.SaleOrderSummary{
+			OrderNumber: summary.OrderCount,
+			OrderID:     order.Id.Get(),
+			OrderName:   order.Name.Get(),
+			AmountTotal: amount,
+			DateOrder:   orderDate,
+		}
+		summary.Orders = append(summary.Orders, orderSummary)
+	}
+
+	// Convert map to sorted slice
+	var summaries []entity.DailySalesSummary
+	for _, summary := range dateMap {
+		summaries = append(summaries, *summary)
+	}
+
+	// Sort by date descending
+	sort.Slice(summaries, func(i, j int) bool {
+		return summaries[i].Date.After(summaries[j].Date)
+	})
+
+	// Calculate period description and average
+	days := endDate.Sub(startDate).Hours() / 24
+	if days < 1 {
+		days = 1
+	}
+
+	var periodDesc string
+	switch periodType {
+	case entity.PeriodTypeDay:
+		periodDesc = "Last 24 Hours"
+	case entity.PeriodTypeWeek:
+		periodDesc = "Last 7 Days"
+	case entity.PeriodTypeMonth:
+		periodDesc = "Last 30 Days"
+	case entity.PeriodTypeQuarter:
+		periodDesc = "Last 90 Days"
+	case entity.PeriodTypeMonthly:
+		periodDesc = endDate.Format("January 2006")
+	case entity.PeriodTypeYearly:
+		periodDesc = endDate.Format("2006")
+	default:
+		periodDesc = fmt.Sprintf("%s to %s", startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
+	}
+
+	return &entity.PeriodSalesSummaryResponse{
+		Period:       periodDesc,
+		PeriodType:   periodType,
+		DateRange:    entity.DateRange{StartDate: startDate, EndDate: endDate},
+		Items:        summaries,
+		TotalAmount:  totalAmount,
+		OrderCount:   totalOrders,
+		AverageDaily: totalAmount / days,
+	}, nil
+}

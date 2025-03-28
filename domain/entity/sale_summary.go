@@ -2,6 +2,24 @@ package entity
 
 import "time"
 
+// PeriodType represents the type of period for sales summary
+type PeriodType string
+
+const (
+	PeriodTypeDay     PeriodType = "1D"      // Last 24 hours
+	PeriodTypeWeek    PeriodType = "7D"      // Last 7 days
+	PeriodTypeMonth   PeriodType = "30D"     // Last 30 days
+	PeriodTypeQuarter PeriodType = "90D"     // Last 90 days
+	PeriodTypeMonthly PeriodType = "MONTHLY" // Group by months
+	PeriodTypeYearly  PeriodType = "YEARLY"  // Group by years
+)
+
+// DateRange represents a date range for filtering
+type DateRange struct {
+	StartDate time.Time `json:"start_date"`
+	EndDate   time.Time `json:"end_date"`
+}
+
 // SaleOrderSummary represents a single sale order in the summary
 type SaleOrderSummary struct {
 	OrderNumber int       `json:"order_number"`
@@ -26,4 +44,15 @@ type SalesSummaryResponse struct {
 	PageSize   int                 `json:"page_size"`
 	TotalItems int                 `json:"total_items"`
 	TotalPages int                 `json:"total_pages"`
+}
+
+// PeriodSalesSummaryResponse represents the response for period-based sales summary
+type PeriodSalesSummaryResponse struct {
+	Period       string              `json:"period"`
+	PeriodType   PeriodType          `json:"period_type"`
+	DateRange    DateRange           `json:"date_range"`
+	Items        []DailySalesSummary `json:"items"`
+	TotalAmount  float64             `json:"total_amount"`
+	OrderCount   int                 `json:"order_count"`
+	AverageDaily float64             `json:"average_daily"`
 }

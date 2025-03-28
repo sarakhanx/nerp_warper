@@ -18,4 +18,5 @@ func SetupRouter(app *fiber.App, authHandler *handler.AuthHandler, saleHandler *
 	sales := app.Group("/sales")
 	sales.Get("/", saleHandler.GetAllSaleOrders)
 	sales.Get("/daily-summary", saleHandler.GetDailySalesSummary)
+	sales.Get("/period-summary", saleHandler.GetPeriodSalesSummary)
 }
