@@ -7,7 +7,7 @@ import (
 )
 
 // SetupRouter sets up all the routes for the application
-func SetupRouter(app *fiber.App, authHandler *handler.AuthHandler, saleHandler *handler.SaleHandler) {
+func SetupRouter(app *fiber.App, authHandler *handler.AuthHandler, saleHandler *handler.SaleHandler, invoiceHandler *handler.InvoiceHandler) {
 	// Auth routes
 	auth := app.Group("/auth")
 	auth.Post("/login", authHandler.Login)
@@ -19,4 +19,10 @@ func SetupRouter(app *fiber.App, authHandler *handler.AuthHandler, saleHandler *
 	sales.Get("/", saleHandler.GetAllSaleOrders)
 	sales.Get("/daily-summary", saleHandler.GetDailySalesSummary)
 	sales.Get("/period-summary", saleHandler.GetPeriodSalesSummary)
+
+	// Invoice routes
+	invoices := app.Group("/invoices")
+	invoices.Get("/", invoiceHandler.GetAllInvoices)
+	invoices.Get("/daily-summary", invoiceHandler.GetDailyInvoiceSummary)
+	invoices.Get("/period-summary", invoiceHandler.GetPeriodInvoiceSummary)
 }

@@ -27,14 +27,17 @@ func main() {
 
 	// Initialize repositories
 	saleRepo := odoo.NewOdooSaleRepository(authRepo.GetClient())
+	invoiceRepo := odoo.NewOdooInvoiceRepository(authRepo.GetClient())
 
 	// Initialize services
 	authService := service.NewAuthService(authRepo)
 	saleService := service.NewSaleService(saleRepo)
+	invoiceService := service.NewInvoiceService(invoiceRepo)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
 	saleHandler := handler.NewSaleHandler(saleService)
+	invoiceHandler := handler.NewInvoiceHandler(invoiceService)
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
@@ -47,7 +50,7 @@ func main() {
 	app.Use(cors.New())
 
 	// Setup routes
-	router.SetupRouter(app, authHandler, saleHandler)
+	router.SetupRouter(app, authHandler, saleHandler, invoiceHandler)
 
 	// Start server
 	log.Fatal(app.Listen(":3000"))
